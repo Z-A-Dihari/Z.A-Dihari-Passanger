@@ -135,7 +135,7 @@
                 <div style="background:#fff; padding:16px; border-radius:14px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="color:#f59e0b;"><i class="fas fa-broadcast-tower fa-spin"></i> Searching Drivers (4km)...</h4>
-                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="cancelActiveRide()">Cancel</button>
+                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="confirmCancelRide()">Cancel</button>
                     </div>
                 </div>
                 <div id="incomingBidsContainer"></div>
@@ -145,7 +145,7 @@
                 <div style="background:#fff; padding:18px; border-radius:14px; border:2px solid #10b981;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="color:#10b981;"><i class="fas fa-check-circle"></i> Ride Confirmed! Live Tracking</h4>
-                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="cancelActiveRide()">Cancel Ride</button>
+                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="confirmCancelRide()">Cancel Ride</button>
                     </div>
                     <div id="connectedDriverDetails" style="margin:10px 0; font-size:14px;"></div>
                     <div id="liveTrackingMap"></div>
@@ -160,6 +160,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Audio Beep Generator for Notifications -->
+    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
         let deferredPrompt;
@@ -182,10 +185,15 @@
         let map, pickupMarker, dropMarker, routeLine, liveMap, driverMarker;
         let pinMode = 'pickup', pickupCoords = null, dropCoords = null;
         let calculatedDistance = 0, recommendedFare = 0, currentRideId = localStorage.getItem('za_active_ride_id') || null;
+        let lastMsgCount = 0;
 
         function showToast(msg) {
             const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
+        }
+        function playSound() {
+            const audio = document.getElementById('notifSound');
+            if (audio) audio.play().catch(e => console.log(e));
         }
         function toggleAuthMode() {
             isLoginMode = !isLoginMode;
@@ -249,8 +257,13 @@
 
             if (currentRideId) {
                 db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
-                    if (!doc.exists || doc.data().status === 'cancelled' || doc.data().status === 'completed') {
+                    if (!doc.exists || doc.data().status === 'cancelled') {
                         localStorage.removeItem('za_active_ride_id');
+                        alert("Ride was cancelled.");
+                        location.reload();
+                    } else if (doc.data().status === 'completed') {
+                        localStorage.removeItem('za_active_ride_id');
+                        alert("Ride Completed Successfully!");
                         location.reload();
                     } else {
                         const ride = doc.data();
@@ -387,6 +400,7 @@
             .onSnapshot(snap => {
                 const box = document.getElementById('incomingBidsContainer');
                 box.innerHTML = '';
+                if (!snap.empty) playSound(); // Play alert when driver sends offer
                 snap.forEach(doc => {
                     const b = doc.data(), bidId = doc.id;
                     box.innerHTML += `
@@ -439,26 +453,24 @@
             setTimeout(() => liveMap.invalidateSize(), 200);
 
             db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    if (data.status === 'completed') {
-                        alert("Ride Completed! Thank you.");
-                        localStorage.removeItem('za_active_ride_id');
-                        location.reload();
-                    }
-                    if (data.driverLocation) {
-                        const { lat, lng } = data.driverLocation;
-                        if (!driverMarker) {
-                            const carIcon = L.divIcon({ html: '<i class="fas fa-taxi" style="font-size:22px;color:#f59e0b;"></i>', iconSize: [30,30] });
-                            driverMarker = L.marker([lat, lng], {icon: carIcon}).addTo(liveMap);
-                        } else {
-                            driverMarker.setLatLng([lat, lng]);
-                        }
+                if (doc.exists && doc.data().driverLocation) {
+                    const { lat, lng } = doc.data().driverLocation;
+                    if (!driverMarker) {
+                        const carIcon = L.divIcon({ html: '<i class="fas fa-taxi" style="font-size:22px;color:#f59e0b;"></i>', iconSize: [30,30] });
+                        driverMarker = L.marker([lat, lng], {icon: carIcon}).addTo(liveMap);
+                    } else {
+                        driverMarker.setLatLng([lat, lng]);
                     }
                 }
             });
 
             loadChat(currentRideId);
+        }
+
+        function confirmCancelRide() {
+            if (confirm("Are you sure you want to cancel this ride?")) {
+                cancelActiveRide();
+            }
         }
 
         async function cancelActiveRide() {
@@ -472,6 +484,10 @@
             db.collection('za_rides').doc(rideId).collection('chat').orderBy('createdAt', 'asc')
             .onSnapshot(snap => {
                 const box = document.getElementById('chatMsgs'); box.innerHTML = '';
+                if (snap.size > lastMsgCount && lastMsgCount !== 0) {
+                    playSound(); // Sound alert on new message
+                }
+                lastMsgCount = snap.size;
                 snap.forEach(doc => {
                     const m = doc.data();
                     box.innerHTML += `<div class="msg ${m.sender === user.phone ? 'me' : 'them'}">${m.text}</div>`;
