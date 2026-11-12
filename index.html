@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Z.A Dihari App - Passenger</title>
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
     
@@ -34,15 +33,12 @@
         header { background: #0f172a; color: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .user-dp { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; background: #334155; }
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
-        
-        /* Floating Install Banner */
-        #installBanner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #0f172a; color: #fff; padding: 14px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; z-index: 5000; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #f59e0b; }
-        
+        #installBanner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #0f172a; color: #fff; padding: 14px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; z-index: 5000; border: 1px solid #f59e0b; }
         .hero-book-btn { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 22px; border-radius: 16px; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3); margin-bottom: 20px; }
         #bookingPanel { display: none; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
         .search-row input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
-        #map { height: 260px; width: 100%; border-radius: 12px; margin: 12px 0; border: 1px solid #cbd5e1; z-index: 1; }
+        #map, #liveTrackingMap { height: 280px; width: 100%; border-radius: 12px; margin: 12px 0; border: 1px solid #cbd5e1; z-index: 1; }
         .loc-badges { display: flex; gap: 8px; margin-bottom: 10px; }
         .loc-pill { flex: 1; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; border: 1px solid #cbd5e1; }
         .loc-pill.active-pick { background: #fef3c7; border-color: #f59e0b; color: #b45309; }
@@ -54,54 +50,35 @@
         .fare-adjuster input { flex: 1; text-align: center; font-size: 18px; font-weight: bold; }
         .bid-card { background: #fff; border-left: 5px solid #f59e0b; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 12px; }
         .chat-box { border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #fff; margin-top: 15px; }
-        .chat-msgs { height: 240px; overflow-y: auto; padding: 12px; background: #f1f5f9; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msgs { height: 200px; overflow-y: auto; padding: 12px; background: #f1f5f9; display: flex; flex-direction: column; gap: 8px; }
         .msg { padding: 8px 12px; border-radius: 10px; max-width: 78%; font-size: 13px; }
         .msg.me { background: #f59e0b; color: #fff; align-self: flex-end; }
         .msg.them { background: #fff; border: 1px solid #e2e8f0; align-self: flex-start; }
         .chat-controls { display: flex; padding: 8px; gap: 6px; background: #fff; border-top: 1px solid #e2e8f0; }
         .chat-controls input { flex: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 3000; padding: 20px; }
-        .modal-box { background: #fff; width: 100%; max-width: 400px; padding: 24px; border-radius: 16px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         #toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%) translateY(100px); background: #0f172a; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 4000; transition: 0.3s; opacity: 0; }
         #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- Floating Install Prompt Banner -->
     <div id="installBanner">
-        <div>
-            <strong>Install Z.A Passenger</strong>
-            <p style="font-size:12px; color:#94a3b8;">Add to home screen for quick access</p>
-        </div>
-        <button class="btn btn-primary" id="installBtn" style="width:auto; padding:8px 14px; font-size:13px;">Install</button>
+        <div><strong>Install Z.A Passenger</strong><p style="font-size:12px; color:#94a3b8;">Add to home screen</p></div>
+        <button class="btn btn-primary" id="installBtn" style="width:auto; padding:8px 14px;">Install</button>
     </div>
-
     <div id="toast">Notification</div>
-    <div id="customModal" class="modal-overlay">
-        <div class="modal-box">
-            <i class="fas fa-info-circle" style="font-size:38px; color:#f59e0b; margin-bottom:10px;"></i>
-            <h3 id="modalTitle">Notice</h3>
-            <p id="modalText" style="margin:10px 0 16px; color:#475569; font-size:14px;"></p>
-            <button class="btn btn-primary" onclick="closeModal()">OK</button>
-        </div>
-    </div>
 
     <div id="authScreen" class="auth-wrap">
         <div class="auth-card">
-            <div class="brand-logo">
-                <i class="fas fa-taxi"></i>
-                <h2>Z.A Dihari App</h2>
-                <p style="font-size:13px; color:#64748b;">Passenger Portal</p>
-            </div>
+            <div class="brand-logo"><i class="fas fa-taxi"></i><h2>Z.A Dihari App</h2><p style="font-size:13px; color:#64748b;">Passenger Portal</p></div>
             <form id="authForm" onsubmit="handleAuth(event)">
                 <div id="signupFields">
                     <div class="input-group"><label>Full Name</label><input type="text" id="regName" placeholder="Enter full name"></div>
-                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="regCnic" placeholder="3520212345671" maxlength="13" minlength="13"></div>
+                    <div class="input-group"><label>CNIC (13 Digits)</label><input type="text" id="regCnic" placeholder="3520212345671" maxlength="13"></div>
                     <div class="input-group"><label>Profile Picture</label><input type="file" id="regDp" accept="image/*"></div>
                 </div>
-                <div class="input-group"><label>Phone Number (11 Digits)</label><input type="tel" id="authPhone" placeholder="03001234567" maxlength="11" minlength="11" required></div>
-                <div class="input-group"><label>Password</label><input type="password" id="authPass" placeholder="Enter password" required></div>
+                <div class="input-group"><label>Phone Number (11 Digits)</label><input type="tel" id="authPhone" placeholder="03001234567" maxlength="11" required></div>
+                <div class="input-group"><label>Password</label><input type="password" id="authPass" placeholder="Password" required></div>
                 <button type="submit" class="btn btn-primary" id="authSubmitBtn">Register Account</button>
             </form>
             <div class="toggle-link" onclick="toggleAuthMode()"><span id="toggleAuthText">Already have an account? Login here</span></div>
@@ -127,18 +104,18 @@
                     <button class="btn btn-outline" style="width:auto; padding:5px 10px;" onclick="closeBookingPanel()">Close</button>
                 </div>
                 <div class="search-row">
-                    <input type="text" id="addressSearch" placeholder="Search place (e.g., Liberty Market)">
+                    <input type="text" id="addressSearch" placeholder="Search place...">
                     <button type="button" class="btn btn-dark" style="width:auto; padding:0 14px;" onclick="searchAddress()"><i class="fas fa-search"></i></button>
                 </div>
                 <button type="button" class="btn btn-outline" style="margin-bottom:10px; padding:8px;" onclick="useCurrentLocation()">Use Current Location (Pickup)</button>
                 <div class="loc-badges">
-                    <div id="pillPickup" class="loc-pill active-pick" onclick="setPinMode('pickup')">1. Tap Map for Pickup</div>
-                    <div id="pillDrop" class="loc-pill" onclick="setPinMode('drop')">2. Tap Map for Drop-off</div>
+                    <div id="pillPickup" class="loc-pill active-pick" onclick="setPinMode('pickup')">1. Tap Map for Pickup (A)</div>
+                    <div id="pillDrop" class="loc-pill" onclick="setPinMode('drop')">2. Tap Map for Drop (B)</div>
                 </div>
                 <div id="map"></div>
                 <div style="font-size:12px; color:#475569; margin-bottom:8px;">
-                    <div><strong>Pickup:</strong> <span id="pickupText">Not selected</span></div>
-                    <div><strong>Drop-off:</strong> <span id="dropText">Not selected</span></div>
+                    <div><strong>Pickup (A):</strong> <span id="pickupText">Not selected</span></div>
+                    <div><strong>Drop (B):</strong> <span id="dropText">Not selected</span></div>
                 </div>
                 <div class="fare-box">
                     <div class="fare-row"><span>Route Distance:</span><strong id="distDisplay">0.0 km</strong></div>
@@ -152,12 +129,9 @@
                         <button type="button" onclick="adjustFare(5)">+</button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label>Extra Note (Optional)</label>
-                    <input type="text" id="rideNoteInput" placeholder="e.g. Carrying 1 chair">
-                </div>
                 <button type="button" class="btn btn-primary" onclick="findDrivers()">Find Driver</button>
             </div>
+
             <div id="activeRideSection" class="hidden">
                 <div style="background:#fff; padding:16px; border-radius:14px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -167,17 +141,19 @@
                 </div>
                 <div id="incomingBidsContainer"></div>
             </div>
+
             <div id="acceptedRideSection" class="hidden">
                 <div style="background:#fff; padding:18px; border-radius:14px; border:2px solid #10b981;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h4 style="color:#10b981;"><i class="fas fa-check-circle"></i> Driver Connected!</h4>
+                        <h4 style="color:#10b981;"><i class="fas fa-check-circle"></i> Ride Confirmed! Live Tracking</h4>
                         <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="cancelActiveRide()">Cancel</button>
                     </div>
-                    <div id="connectedDriverDetails" style="margin-top:10px; font-size:14px;"></div>
+                    <div id="connectedDriverDetails" style="margin:10px 0; font-size:14px;"></div>
+                    <div id="liveTrackingMap"></div>
                     <div class="chat-box">
                         <div class="chat-msgs" id="chatMsgs"></div>
                         <div class="chat-controls">
-                            <input type="text" id="chatInput" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendChatMsg()">
+                            <input type="text" id="chatInput" placeholder="Message driver..." onkeypress="if(event.key==='Enter') sendChatMsg()">
                             <button class="btn btn-primary" style="width:auto; padding:0 14px;" onclick="sendChatMsg()">Send</button>
                         </div>
                     </div>
@@ -187,24 +163,9 @@
     </div>
 
     <script>
-        // PWA Install Prompt Script
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBanner').style.display = 'flex';
-        });
-
-        document.getElementById('installBtn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('installBanner').style.display = 'none';
-                }
-                deferredPrompt = null;
-            }
-        });
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBanner').style.display = 'flex'; });
+        document.getElementById('installBtn').addEventListener('click', async () => { if (deferredPrompt) { deferredPrompt.prompt(); document.getElementById('installBanner').style.display = 'none'; deferredPrompt = null; } });
 
         const firebaseConfig = {
             apiKey: "AIzaSyDzga11KOZOxNJiUx_xeU39xCE6zkJDHjI",
@@ -222,37 +183,13 @@
         localStorage.setItem('za_device_id', deviceId);
 
         let isLoginMode = false, perKmRate = 40;
-        let map, pickupMarker, dropMarker, routeLine;
+        let map, pickupMarker, dropMarker, routeLine, liveMap, liveRouteLine, driverMarker;
         let pinMode = 'pickup', pickupCoords = null, dropCoords = null;
-        let calculatedDistance = 0, recommendedFare = 0, currentRideId = null;
+        let calculatedDistance = 0, recommendedFare = 0, currentRideId = localStorage.getItem('za_active_ride_id') || null;
 
         function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.classList.add('show');
+            const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
-        }
-        function showModal(title, text) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalText').innerText = text;
-            document.getElementById('customModal').style.display = 'flex';
-        }
-        function closeModal() { document.getElementById('customModal').style.display = 'none'; }
-
-        function compressImage(file) {
-            return new Promise((resolve) => {
-                if (!file) { resolve(''); return; }
-                const reader = new FileReader(); reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image(); img.src = e.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const scale = 300 / img.width;
-                        canvas.width = 300; canvas.height = img.height * scale;
-                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.7));
-                    };
-                };
-            });
         }
 
         function toggleAuthMode() {
@@ -266,24 +203,23 @@
             e.preventDefault();
             const phone = document.getElementById('authPhone').value.trim();
             const password = document.getElementById('authPass').value;
-            if (phone.length !== 11) { showToast("Phone number must be exactly 11 digits."); return; }
+            if (phone.length !== 11) { showToast("Phone must be 11 digits."); return; }
 
             const snap = await db.collection('za_passengers').where('phone', '==', phone).get();
             if (!isLoginMode) {
                 const cnic = document.getElementById('regCnic').value.trim();
-                if (cnic.length !== 13) { showToast("CNIC must be exactly 13 digits."); return; }
-                if (!snap.empty) { showToast("Account already exists. Please login."); toggleAuthMode(); return; }
+                if (cnic.length !== 13) { showToast("CNIC must be 13 digits."); return; }
+                if (!snap.empty) { showToast("Account already exists."); toggleAuthMode(); return; }
 
                 const name = document.getElementById('regName').value.trim();
-                const dp = await compressImage(document.getElementById('regDp').files[0]);
-                const userData = { name, phone, cnic, password, dp, deviceId, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                const userData = { name, phone, cnic, password, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                 await db.collection('za_passengers').add(userData);
                 localStorage.setItem('za_passenger_user', JSON.stringify(userData));
                 initDashboard(userData);
             } else {
                 if (snap.empty) { showToast("Account not found."); return; }
                 const user = snap.docs[0].data();
-                if (user.status === 'blocked') { showToast("Account is blocked by admin."); return; }
+                if (user.status === 'blocked') { showToast("Account blocked."); return; }
                 if (user.password !== password) { showToast("Wrong password!"); return; }
                 localStorage.setItem('za_passenger_user', JSON.stringify(user));
                 initDashboard(user);
@@ -294,13 +230,29 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             document.getElementById('navName').innerText = user.name;
-            if (user.dp) document.getElementById('navDp').src = user.dp;
 
             db.collection('za_settings').doc('pricing').onSnapshot(doc => {
-                if (doc.exists && doc.data().perKmRate) {
-                    perKmRate = Number(doc.data().perKmRate);
-                }
+                if (doc.exists && doc.data().perKmRate) perKmRate = Number(doc.data().perKmRate);
             });
+
+            // Check if there's an active ride stored in localStorage
+            if (currentRideId) {
+                db.collection('za_rides').doc(currentRideId).get().then(doc => {
+                    if (doc.exists) {
+                        const ride = doc.data();
+                        if (ride.status === 'accepted') {
+                            showAcceptedRideView(ride);
+                        } else if (ride.status === 'searching') {
+                            document.getElementById('heroBookCard').classList.add('hidden');
+                            document.getElementById('activeRideSection').classList.remove('hidden');
+                            listenBids(currentRideId);
+                        }
+                    } else {
+                        localStorage.removeItem('za_active_ride_id');
+                        currentRideId = null;
+                    }
+                });
+            }
         }
 
         function openBookingPanel() {
@@ -317,12 +269,7 @@
             }
             setTimeout(() => map.invalidateSize(), 200);
         }
-
-        function closeBookingPanel() {
-            document.getElementById('bookingPanel').style.display = 'none';
-            document.getElementById('heroBookCard').classList.remove('hidden');
-        }
-
+        function closeBookingPanel() { document.getElementById('bookingPanel').style.display = 'none'; document.getElementById('heroBookCard').classList.remove('hidden'); }
         function setPinMode(mode) {
             pinMode = mode;
             document.getElementById('pillPickup').className = mode === 'pickup' ? 'loc-pill active-pick' : 'loc-pill';
@@ -367,7 +314,8 @@
             pickupCoords = { lat, lng, label };
             document.getElementById('pickupText').innerText = label;
             if (pickupMarker) map.removeLayer(pickupMarker);
-            pickupMarker = L.marker([lat, lng]).addTo(map);
+            const iconA = L.divIcon({ className: 'custom-pin', html: '<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">A</div>', iconSize: [30, 30] });
+            pickupMarker = L.marker([lat, lng], { icon: iconA }).addTo(map);
             fetchRoute();
         }
 
@@ -375,7 +323,8 @@
             dropCoords = { lat, lng, label };
             document.getElementById('dropText').innerText = label;
             if (dropMarker) map.removeLayer(dropMarker);
-            dropMarker = L.marker([lat, lng]).addTo(map);
+            const iconB = L.divIcon({ className: 'custom-pin', html: '<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">B</div>', iconSize: [30, 30] });
+            dropMarker = L.marker([lat, lng], { icon: iconB }).addTo(map);
             fetchRoute();
         }
 
@@ -389,7 +338,6 @@
                     const route = data.routes[0];
                     calculatedDistance = route.distance / 1000;
                     recommendedFare = Math.round(calculatedDistance * perKmRate);
-
                     document.getElementById('distDisplay').innerText = `${calculatedDistance.toFixed(1)} km`;
                     document.getElementById('recFareDisplay').innerText = `PKR ${recommendedFare}`;
                     document.getElementById('offerFareInput').value = recommendedFare;
@@ -405,28 +353,25 @@
         function adjustFare(amount) {
             const inp = document.getElementById('offerFareInput');
             let val = Number(inp.value) + amount;
-            const minAllowed = recommendedFare - 10;
-            if (val < minAllowed) val = minAllowed;
+            if (val < recommendedFare - 10) val = recommendedFare - 10;
             inp.value = val;
         }
 
         async function findDrivers() {
-            if (!pickupCoords || !dropCoords) { showModal("Error", "Select pickup and drop points"); return; }
+            if (!pickupCoords || !dropCoords) { showToast("Select pickup and drop points"); return; }
             const offered = Number(document.getElementById('offerFareInput').value);
-            const minAllowed = recommendedFare - 10;
-            if (offered < minAllowed) { showModal("Error", `Fare cannot be less than PKR ${minAllowed}`); return; }
-
             const user = JSON.parse(localStorage.getItem('za_passenger_user'));
+            
             const rideRef = await db.collection('za_rides').add({
                 passengerName: user.name, passengerPhone: user.phone,
                 pickup: pickupCoords, drop: dropCoords,
                 distanceKm: Number(calculatedDistance.toFixed(1)),
                 recommendedFare, offeredFare: offered,
-                note: document.getElementById('rideNoteInput').value.trim() || 'No note',
                 status: 'searching', createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
             currentRideId = rideRef.id;
+            localStorage.setItem('za_active_ride_id', currentRideId);
             document.getElementById('bookingPanel').style.display = 'none';
             document.getElementById('activeRideSection').classList.remove('hidden');
             listenBids(currentRideId);
@@ -443,7 +388,10 @@
                         <div class="bid-card">
                             <strong>${b.driverName}</strong> (${b.vehicleType})
                             <div style="color:#10b981; font-weight:700;">Offer: PKR ${b.bidAmount}</div>
-                            <button class="btn btn-success" style="margin-top:8px;" onclick="acceptBid('${rideId}', '${bidId}', '${b.driverName}', '${b.driverPhone}', '${b.vehicleType}', ${b.bidAmount}, '${b.vehicleNumber}')">Accept</button>
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="btn btn-success" onclick="acceptBid('${rideId}', '${bidId}', '${b.driverName}', '${b.driverPhone}', '${b.vehicleType}', ${b.bidAmount}, '${b.vehicleNumber}')">Accept</button>
+                                <button class="btn btn-danger" onclick="rejectBid('${rideId}', '${bidId}')">Decline</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -453,25 +401,59 @@
         async function acceptBid(rideId, bidId, driverName, driverPhone, vehicleType, finalFare, vehicleNumber) {
             await db.collection('za_rides').doc(rideId).update({ status: 'accepted', driverName, driverPhone, vehicleType, finalFare, vehicleNumber });
             await db.collection('za_rides').doc(rideId).collection('bids').doc(bidId).update({ status: 'accepted' });
+            
+            db.collection('za_rides').doc(rideId).get().then(doc => showAcceptedRideView(doc.data()));
+        }
 
+        async function rejectBid(rideId, bidId) {
+            await db.collection('za_rides').doc(rideId).collection('bids').doc(bidId).update({ status: 'declined' });
+            showToast("Offer declined");
+        }
+
+        function showAcceptedRideView(ride) {
+            document.getElementById('heroBookCard').classList.add('hidden');
             document.getElementById('activeRideSection').classList.add('hidden');
             document.getElementById('acceptedRideSection').classList.remove('hidden');
             document.getElementById('connectedDriverDetails').innerHTML = `
-                <p><strong>Driver:</strong> ${driverName} (${vehicleType} - <strong>${vehicleNumber}</strong>)</p>
-                <p><strong>Phone:</strong> <a href="tel:${driverPhone}">${driverPhone}</a></p>
-                <p><strong>Fare:</strong> PKR ${finalFare}</p>
+                <p><strong>Driver:</strong> ${ride.driverName} (${ride.vehicleType} - <strong>${ride.vehicleNumber}</strong>)</p>
+                <p><strong>Phone:</strong> <a href="tel:${ride.driverPhone}">${ride.driverPhone}</a></p>
+                <p><strong>Final Fare:</strong> PKR ${ride.finalFare}</p>
             `;
-            loadChat(rideId);
+
+            if (!liveMap) {
+                liveMap = L.map('liveTrackingMap').setView([ride.pickup.lat, ride.pickup.lng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(liveMap);
+                
+                const iconA = L.divIcon({ html: '<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;">A</div>', iconSize: [30,30] });
+                const iconB = L.divIcon({ html: '<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;">B</div>', iconSize: [30,30] });
+                L.marker([ride.pickup.lat, ride.pickup.lng], {icon: iconA}).addTo(liveMap).bindPopup("Pickup (A)");
+                L.marker([ride.drop.lat, ride.drop.lng], {icon: iconB}).addTo(liveMap).bindPopup("Drop (B)");
+            }
+            setTimeout(() => liveMap.invalidateSize(), 200);
+
+            // Listen to driver live location updates
+            db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.driverLocation) {
+                        const { lat, lng } = data.driverLocation;
+                        if (!driverMarker) {
+                            const carIcon = L.divIcon({ html: '<i class="fas fa-taxi" style="font-size:22px;color:#f59e0b;"></i>', iconSize: [30,30] });
+                            driverMarker = L.marker([lat, lng], {icon: carIcon}).addTo(liveMap);
+                        } else {
+                            driverMarker.setLatLng([lat, lng]);
+                        }
+                    }
+                }
+            });
+
+            loadChat(currentRideId);
         }
 
         async function cancelActiveRide() {
-            if (!currentRideId) return;
-            await db.collection('za_rides').doc(currentRideId).update({ status: 'cancelled' });
-            currentRideId = null;
-            document.getElementById('activeRideSection').classList.add('hidden');
-            document.getElementById('acceptedRideSection').classList.add('hidden');
-            document.getElementById('heroBookCard').classList.remove('hidden');
-            showToast("Ride cancelled");
+            if (currentRideId) await db.collection('za_rides').doc(currentRideId).update({ status: 'cancelled' });
+            localStorage.removeItem('za_active_ride_id');
+            location.reload();
         }
 
         function loadChat(rideId) {
@@ -497,7 +479,7 @@
             inp.value = '';
         }
 
-        function logout() { localStorage.removeItem('za_passenger_user'); location.reload(); }
+        function logout() { localStorage.clear(); location.reload(); }
         window.onload = () => { const s = JSON.parse(localStorage.getItem('za_passenger_user')); if (s) initDashboard(s); };
     </script>
 </body>
