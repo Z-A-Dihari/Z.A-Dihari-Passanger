@@ -71,7 +71,6 @@
     </div>
     <div id="toast">Notification</div>
 
-    <!-- Custom Beautiful Confirmation Modal -->
     <div id="customConfirmModal" class="modal-overlay">
         <div class="modal-box">
             <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: #f59e0b; margin-bottom: 12px;"></i>
@@ -149,7 +148,7 @@
             <div id="activeRideSection" class="hidden">
                 <div style="background:#fff; padding:16px; border-radius:14px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h4 style="color:#f59e0b;"><i class="fas fa-broadcast-tower fa-spin"></i> Searching Drivers (4km)...</h4>
+                        <h4 style="color:#f59e0b;"><i class="fas fa-broadcast-tower fa-spin"></i> Searching Drivers (4km)... <span id="timerDisplay" style="font-size:12px; color:#ef4444; margin-left:10px;">(2:00)</span></h4>
                         <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="openConfirmModal()">Cancel</button>
                     </div>
                 </div>
@@ -199,7 +198,7 @@
         let map, pickupMarker, dropMarker, routeLine, liveMap, driverMarker;
         let pinMode = 'pickup', pickupCoords = null, dropCoords = null;
         let calculatedDistance = 0, recommendedFare = 0, currentRideId = localStorage.getItem('za_active_ride_id') || null;
-        let lastMsgCount = 0;
+        let lastMsgCount = 0, autoCancelInterval = null;
 
         function showToast(msg) {
             const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
@@ -276,16 +275,29 @@
             if (currentRideId) {
                 db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
                     if (!doc.exists || doc.data().status === 'cancelled') {
+                        if (autoCancelInterval) clearInterval(autoCancelInterval);
                         localStorage.removeItem('za_active_ride_id');
-                        showToast("Ride was cancelled.");
+                        showToast("Ride cancelled or expired.");
                         setTimeout(() => location.reload(), 1500);
                     } else if (doc.data().status === 'completed') {
+                        if (autoCancelInterval) clearInterval(autoCancelInterval);
                         localStorage.removeItem('za_active_ride_id');
                         showToast("Ride Completed Successfully!");
                         setTimeout(() => location.reload(), 1500);
                     } else {
                         const ride = doc.data();
-                        if (ride.status === 'accepted') showAcceptedRideView(ride);
+                        if (ride.status === 'accepted') {
+                            if (autoCancelInterval) clearInterval(autoCancelInterval);
+                            showAcceptedRideView(ride);
+                        } else if (ride.status === 'searching') {
+                            document.getElementById('heroBookCard').classList.add('hidden');
+                            document.getElementById('activeRideSection').classList.remove('hidden');
+                            listenBids(currentRideId);
+                            // If reloaded while searching, resume timer
+                            if (ride.createdAt && !autoCancelInterval) {
+                                startAutoCancelTimer(ride.createdAt.toMillis());
+                            }
+                        }
                     }
                 });
             }
@@ -410,7 +422,41 @@
             localStorage.setItem('za_active_ride_id', currentRideId);
             document.getElementById('bookingPanel').style.display = 'none';
             document.getElementById('activeRideSection').classList.remove('hidden');
+            
+            // Start 2-minute timer (120 seconds)
+            startAutoCancelTimer(Date.now());
             listenBids(currentRideId);
+        }
+
+        function startAutoCancelTimer(startTime) {
+            if (autoCancelInterval) clearInterval(autoCancelInterval);
+            const totalSeconds = 120; // 2 minutes
+
+            autoCancelInterval = setInterval(async () => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const remaining = totalSeconds - elapsed;
+
+                if (remaining <= 0) {
+                    clearInterval(autoCancelInterval);
+                    // Auto-cancel if still searching
+                    if (currentRideId) {
+                        const rideDoc = await db.collection('za_rides').doc(currentRideId).get();
+                        if (rideDoc.exists && rideDoc.data().status === 'searching') {
+                            await db.collection('za_rides').doc(currentRideId).update({ status: 'cancelled' });
+                            localStorage.removeItem('za_active_ride_id');
+                            alert("Ride expired! No driver accepted within 2 minutes.");
+                            location.reload();
+                        }
+                    }
+                } else {
+                    const min = Math.floor(remaining / 60);
+                    const sec = remaining % 60;
+                    const timerEl = document.getElementById('timerDisplay');
+                    if (timerEl) {
+                        timerEl.innerText = `(${min}:${sec < 10 ? '0' : ''}${sec})`;
+                    }
+                }
+            }, 1000);
         }
 
         function listenBids(rideId) {
@@ -436,6 +482,7 @@
         }
 
         async function acceptBid(rideId, bidId, driverName, driverPhone, vehicleType, finalFare, vehicleNumber, driverDp) {
+            if (autoCancelInterval) clearInterval(autoCancelInterval);
             await db.collection('za_rides').doc(rideId).update({ status: 'accepted', driverName, driverPhone, vehicleType, finalFare, vehicleNumber, driverDp });
             await db.collection('za_rides').doc(rideId).collection('bids').doc(bidId).update({ status: 'accepted' });
         }
@@ -486,6 +533,7 @@
         }
 
         async function cancelActiveRide() {
+            if (autoCancelInterval) clearInterval(autoCancelInterval);
             if (currentRideId) await db.collection('za_rides').doc(currentRideId).update({ status: 'cancelled' });
             localStorage.removeItem('za_active_ride_id');
             location.reload();
