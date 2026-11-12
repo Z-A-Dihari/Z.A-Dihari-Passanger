@@ -35,7 +35,8 @@
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
         #installBanner { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #0f172a; color: #fff; padding: 14px 18px; border-radius: 14px; display: none; justify-content: space-between; align-items: center; z-index: 5000; border: 1px solid #f59e0b; }
         .hero-book-btn { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; padding: 22px; border-radius: 16px; text-align: center; cursor: pointer; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3); margin-bottom: 20px; }
-        #bookingPanel { display: none; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        #bookingPanel { display: none; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
+        .close-x { position: absolute; top: 15px; right: 15px; font-size: 20px; color: #64748b; cursor: pointer; font-weight: bold; }
         .search-row { display: flex; gap: 8px; margin-bottom: 10px; }
         .search-row input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
         #map, #liveTrackingMap { height: 280px; width: 100%; border-radius: 12px; margin: 12px 0; border: 1px solid #cbd5e1; z-index: 1; }
@@ -50,7 +51,7 @@
         .fare-adjuster input { flex: 1; text-align: center; font-size: 18px; font-weight: bold; }
         .bid-card { background: #fff; border-left: 5px solid #f59e0b; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 12px; }
         .chat-box { border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #fff; margin-top: 15px; }
-        .chat-msgs { height: 200px; overflow-y: auto; padding: 12px; background: #f1f5f9; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msgs { height: 180px; overflow-y: auto; padding: 12px; background: #f1f5f9; display: flex; flex-direction: column; gap: 8px; }
         .msg { padding: 8px 12px; border-radius: 10px; max-width: 78%; font-size: 13px; }
         .msg.me { background: #f59e0b; color: #fff; align-self: flex-end; }
         .msg.them { background: #fff; border: 1px solid #e2e8f0; align-self: flex-start; }
@@ -99,10 +100,8 @@
                 <h3 style="font-size:20px;">Book a Ride +</h3>
             </div>
             <div id="bookingPanel">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h4>Set Route & Fare</h4>
-                    <button class="btn btn-outline" style="width:auto; padding:5px 10px;" onclick="closeBookingPanel()">Close</button>
-                </div>
+                <span class="close-x" onclick="closeBookingPanel()">&times;</span>
+                <h4 style="margin-bottom:12px;">Set Route & Fare</h4>
                 <div class="search-row">
                     <input type="text" id="addressSearch" placeholder="Search place...">
                     <button type="button" class="btn btn-dark" style="width:auto; padding:0 14px;" onclick="searchAddress()"><i class="fas fa-search"></i></button>
@@ -146,7 +145,7 @@
                 <div style="background:#fff; padding:18px; border-radius:14px; border:2px solid #10b981;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="color:#10b981;"><i class="fas fa-check-circle"></i> Ride Confirmed! Live Tracking</h4>
-                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="cancelActiveRide()">Cancel</button>
+                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="cancelActiveRide()">Cancel Ride</button>
                     </div>
                     <div id="connectedDriverDetails" style="margin:10px 0; font-size:14px;"></div>
                     <div id="liveTrackingMap"></div>
@@ -179,11 +178,8 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let deviceId = localStorage.getItem('za_device_id') || 'dev_' + Math.random().toString(36).substr(2, 12);
-        localStorage.setItem('za_device_id', deviceId);
-
         let isLoginMode = false, perKmRate = 40;
-        let map, pickupMarker, dropMarker, routeLine, liveMap, liveRouteLine, driverMarker;
+        let map, pickupMarker, dropMarker, routeLine, liveMap, driverMarker;
         let pinMode = 'pickup', pickupCoords = null, dropCoords = null;
         let calculatedDistance = 0, recommendedFare = 0, currentRideId = localStorage.getItem('za_active_ride_id') || null;
 
@@ -191,12 +187,26 @@
             const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
         }
-
         function toggleAuthMode() {
             isLoginMode = !isLoginMode;
             document.getElementById('signupFields').classList.toggle('hidden', isLoginMode);
             document.getElementById('authSubmitBtn').innerText = isLoginMode ? "Login" : "Register Account";
             document.getElementById('toggleAuthText').innerText = isLoginMode ? "Don't have an account? Register" : "Already have an account? Login";
+        }
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                if (!file) { resolve(''); return; }
+                const reader = new FileReader(); reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image(); img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas'); const scale = 300 / img.width;
+                        canvas.width = 300; canvas.height = img.height * scale;
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                };
+            });
         }
 
         async function handleAuth(e) {
@@ -212,7 +222,8 @@
                 if (!snap.empty) { showToast("Account already exists."); toggleAuthMode(); return; }
 
                 const name = document.getElementById('regName').value.trim();
-                const userData = { name, phone, cnic, password, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                const dp = await compressImage(document.getElementById('regDp').files[0]);
+                const userData = { name, phone, cnic, password, dp, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                 await db.collection('za_passengers').add(userData);
                 localStorage.setItem('za_passenger_user', JSON.stringify(userData));
                 initDashboard(userData);
@@ -230,26 +241,20 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             document.getElementById('navName').innerText = user.name;
+            if (user.dp) document.getElementById('navDp').src = user.dp;
 
             db.collection('za_settings').doc('pricing').onSnapshot(doc => {
                 if (doc.exists && doc.data().perKmRate) perKmRate = Number(doc.data().perKmRate);
             });
 
-            // Check if there's an active ride stored in localStorage
             if (currentRideId) {
-                db.collection('za_rides').doc(currentRideId).get().then(doc => {
-                    if (doc.exists) {
-                        const ride = doc.data();
-                        if (ride.status === 'accepted') {
-                            showAcceptedRideView(ride);
-                        } else if (ride.status === 'searching') {
-                            document.getElementById('heroBookCard').classList.add('hidden');
-                            document.getElementById('activeRideSection').classList.remove('hidden');
-                            listenBids(currentRideId);
-                        }
-                    } else {
+                db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
+                    if (!doc.exists || doc.data().status === 'cancelled' || doc.data().status === 'completed') {
                         localStorage.removeItem('za_active_ride_id');
-                        currentRideId = null;
+                        location.reload();
+                    } else {
+                        const ride = doc.data();
+                        if (ride.status === 'accepted') showAcceptedRideView(ride);
                     }
                 });
             }
@@ -314,7 +319,7 @@
             pickupCoords = { lat, lng, label };
             document.getElementById('pickupText').innerText = label;
             if (pickupMarker) map.removeLayer(pickupMarker);
-            const iconA = L.divIcon({ className: 'custom-pin', html: '<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">A</div>', iconSize: [30, 30] });
+            const iconA = L.divIcon({ html: '<div style="background:#10b981;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">A</div>', iconSize: [30, 30] });
             pickupMarker = L.marker([lat, lng], { icon: iconA }).addTo(map);
             fetchRoute();
         }
@@ -323,7 +328,7 @@
             dropCoords = { lat, lng, label };
             document.getElementById('dropText').innerText = label;
             if (dropMarker) map.removeLayer(dropMarker);
-            const iconB = L.divIcon({ className: 'custom-pin', html: '<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">B</div>', iconSize: [30, 30] });
+            const iconB = L.divIcon({ html: '<div style="background:#ef4444;color:#fff;padding:4px 8px;border-radius:50%;font-weight:bold;text-align:center;">B</div>', iconSize: [30, 30] });
             dropMarker = L.marker([lat, lng], { icon: iconB }).addTo(map);
             fetchRoute();
         }
@@ -363,7 +368,7 @@
             const user = JSON.parse(localStorage.getItem('za_passenger_user'));
             
             const rideRef = await db.collection('za_rides').add({
-                passengerName: user.name, passengerPhone: user.phone,
+                passengerName: user.name, passengerPhone: user.phone, passengerDp: user.dp || '',
                 pickup: pickupCoords, drop: dropCoords,
                 distanceKm: Number(calculatedDistance.toFixed(1)),
                 recommendedFare, offeredFare: offered,
@@ -389,7 +394,7 @@
                             <strong>${b.driverName}</strong> (${b.vehicleType})
                             <div style="color:#10b981; font-weight:700;">Offer: PKR ${b.bidAmount}</div>
                             <div style="display:flex; gap:8px; margin-top:8px;">
-                                <button class="btn btn-success" onclick="acceptBid('${rideId}', '${bidId}', '${b.driverName}', '${b.driverPhone}', '${b.vehicleType}', ${b.bidAmount}, '${b.vehicleNumber}')">Accept</button>
+                                <button class="btn btn-success" onclick="acceptBid('${rideId}', '${bidId}', '${b.driverName}', '${b.driverPhone}', '${b.vehicleType}', ${b.bidAmount}, '${b.vehicleNumber}', '${b.driverDp || ''}')">Accept</button>
                                 <button class="btn btn-danger" onclick="rejectBid('${rideId}', '${bidId}')">Decline</button>
                             </div>
                         </div>
@@ -398,11 +403,9 @@
             });
         }
 
-        async function acceptBid(rideId, bidId, driverName, driverPhone, vehicleType, finalFare, vehicleNumber) {
-            await db.collection('za_rides').doc(rideId).update({ status: 'accepted', driverName, driverPhone, vehicleType, finalFare, vehicleNumber });
+        async function acceptBid(rideId, bidId, driverName, driverPhone, vehicleType, finalFare, vehicleNumber, driverDp) {
+            await db.collection('za_rides').doc(rideId).update({ status: 'accepted', driverName, driverPhone, vehicleType, finalFare, vehicleNumber, driverDp });
             await db.collection('za_rides').doc(rideId).collection('bids').doc(bidId).update({ status: 'accepted' });
-            
-            db.collection('za_rides').doc(rideId).get().then(doc => showAcceptedRideView(doc.data()));
         }
 
         async function rejectBid(rideId, bidId) {
@@ -414,7 +417,11 @@
             document.getElementById('heroBookCard').classList.add('hidden');
             document.getElementById('activeRideSection').classList.add('hidden');
             document.getElementById('acceptedRideSection').classList.remove('hidden');
+            
+            const dpHtml = ride.driverDp ? `<img src="${ride.driverDp}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #f59e0b;margin-bottom:8px;">` : `<i class="fas fa-user-circle" style="font-size:40px;color:#f59e0b;"></i>`;
+            
             document.getElementById('connectedDriverDetails').innerHTML = `
+                <div style="text-align:center; margin-bottom:10px;">${dpHtml}</div>
                 <p><strong>Driver:</strong> ${ride.driverName} (${ride.vehicleType} - <strong>${ride.vehicleNumber}</strong>)</p>
                 <p><strong>Phone:</strong> <a href="tel:${ride.driverPhone}">${ride.driverPhone}</a></p>
                 <p><strong>Final Fare:</strong> PKR ${ride.finalFare}</p>
@@ -431,10 +438,14 @@
             }
             setTimeout(() => liveMap.invalidateSize(), 200);
 
-            // Listen to driver live location updates
             db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
                 if (doc.exists) {
                     const data = doc.data();
+                    if (data.status === 'completed') {
+                        alert("Ride Completed! Thank you.");
+                        localStorage.removeItem('za_active_ride_id');
+                        location.reload();
+                    }
                     if (data.driverLocation) {
                         const { lat, lng } = data.driverLocation;
                         if (!driverMarker) {
