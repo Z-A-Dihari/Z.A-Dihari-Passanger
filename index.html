@@ -57,6 +57,8 @@
         .msg.them { background: #fff; border: 1px solid #e2e8f0; align-self: flex-start; }
         .chat-controls { display: flex; padding: 8px; gap: 6px; background: #fff; border-top: 1px solid #e2e8f0; }
         .chat-controls input { flex: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 6000; padding: 20px; }
+        .modal-box { background: #fff; padding: 24px; border-radius: 16px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         #toast { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%) translateY(100px); background: #0f172a; color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 4000; transition: 0.3s; opacity: 0; }
         #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .hidden { display: none !important; }
@@ -68,6 +70,19 @@
         <button class="btn btn-primary" id="installBtn" style="width:auto; padding:8px 14px;">Install</button>
     </div>
     <div id="toast">Notification</div>
+
+    <!-- Custom Beautiful Confirmation Modal -->
+    <div id="customConfirmModal" class="modal-overlay">
+        <div class="modal-box">
+            <i class="fas fa-exclamation-triangle" style="font-size: 40px; color: #f59e0b; margin-bottom: 12px;"></i>
+            <h3 style="font-size: 18px; color: #0f172a; margin-bottom: 8px;">Cancel Ride?</h3>
+            <p style="font-size: 14px; color: #64748b; margin-bottom: 20px;">Are you sure you want to cancel this ride?</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-outline" style="flex:1;" onclick="closeConfirmModal()">No, Keep</button>
+                <button class="btn btn-danger" style="flex:1;" onclick="executeCancelRide()">Yes, Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <div id="authScreen" class="auth-wrap">
         <div class="auth-card">
@@ -135,7 +150,7 @@
                 <div style="background:#fff; padding:16px; border-radius:14px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="color:#f59e0b;"><i class="fas fa-broadcast-tower fa-spin"></i> Searching Drivers (4km)...</h4>
-                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="confirmCancelRide()">Cancel</button>
+                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="openConfirmModal()">Cancel</button>
                     </div>
                 </div>
                 <div id="incomingBidsContainer"></div>
@@ -145,7 +160,7 @@
                 <div style="background:#fff; padding:18px; border-radius:14px; border:2px solid #10b981;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h4 style="color:#10b981;"><i class="fas fa-check-circle"></i> Ride Confirmed! Live Tracking</h4>
-                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="confirmCancelRide()">Cancel Ride</button>
+                        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="openConfirmModal()">Cancel Ride</button>
                     </div>
                     <div id="connectedDriverDetails" style="margin:10px 0; font-size:14px;"></div>
                     <div id="liveTrackingMap"></div>
@@ -161,7 +176,6 @@
         </div>
     </div>
 
-    <!-- Audio Beep Generator for Notifications -->
     <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
@@ -195,6 +209,10 @@
             const audio = document.getElementById('notifSound');
             if (audio) audio.play().catch(e => console.log(e));
         }
+        function openConfirmModal() { document.getElementById('customConfirmModal').style.display = 'flex'; }
+        function closeConfirmModal() { document.getElementById('customConfirmModal').style.display = 'none'; }
+        function executeCancelRide() { closeConfirmModal(); cancelActiveRide(); }
+
         function toggleAuthMode() {
             isLoginMode = !isLoginMode;
             document.getElementById('signupFields').classList.toggle('hidden', isLoginMode);
@@ -259,12 +277,12 @@
                 db.collection('za_rides').doc(currentRideId).onSnapshot(doc => {
                     if (!doc.exists || doc.data().status === 'cancelled') {
                         localStorage.removeItem('za_active_ride_id');
-                        alert("Ride was cancelled.");
-                        location.reload();
+                        showToast("Ride was cancelled.");
+                        setTimeout(() => location.reload(), 1500);
                     } else if (doc.data().status === 'completed') {
                         localStorage.removeItem('za_active_ride_id');
-                        alert("Ride Completed Successfully!");
-                        location.reload();
+                        showToast("Ride Completed Successfully!");
+                        setTimeout(() => location.reload(), 1500);
                     } else {
                         const ride = doc.data();
                         if (ride.status === 'accepted') showAcceptedRideView(ride);
@@ -400,7 +418,7 @@
             .onSnapshot(snap => {
                 const box = document.getElementById('incomingBidsContainer');
                 box.innerHTML = '';
-                if (!snap.empty) playSound(); // Play alert when driver sends offer
+                if (!snap.empty) playSound();
                 snap.forEach(doc => {
                     const b = doc.data(), bidId = doc.id;
                     box.innerHTML += `
@@ -467,12 +485,6 @@
             loadChat(currentRideId);
         }
 
-        function confirmCancelRide() {
-            if (confirm("Are you sure you want to cancel this ride?")) {
-                cancelActiveRide();
-            }
-        }
-
         async function cancelActiveRide() {
             if (currentRideId) await db.collection('za_rides').doc(currentRideId).update({ status: 'cancelled' });
             localStorage.removeItem('za_active_ride_id');
@@ -485,7 +497,7 @@
             .onSnapshot(snap => {
                 const box = document.getElementById('chatMsgs'); box.innerHTML = '';
                 if (snap.size > lastMsgCount && lastMsgCount !== 0) {
-                    playSound(); // Sound alert on new message
+                    playSound();
                 }
                 lastMsgCount = snap.size;
                 snap.forEach(doc => {
